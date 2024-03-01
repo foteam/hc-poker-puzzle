@@ -17,14 +17,25 @@ public class GUIChipsManager : MonoBehaviour
     [Serializable]
     public class Managers
     {
-        public List<LeanSpawnWithFinger> spawnButtons;
+        public List<Transform> spawnButtons;
     }
     public Chips chipsPrefabs;
     public Managers managers;
+    
+    public static GUIChipsManager Instance { get; private set; }
 
     private void Start()
     {
         SetStartChipsPack();   
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+        DontDestroyOnLoad(gameObject);
     }
 
     private void SetStartChipsPack()
@@ -34,34 +45,17 @@ public class GUIChipsManager : MonoBehaviour
             int rand = RandomPack();
             GameObject chipsPack = Instantiate(chipsPrefabs.chipsPack[rand], managers.spawnButtons[i].gameObject.transform.position,
                 Quaternion.identity);
-
-            managers.spawnButtons[i].Prefab = chipsPrefabs.chipsPack[rand].transform;
-            
-            chipsPack.GetComponent<LeanDragTranslateAlong>().enabled = false;
-            chipsPack.transform.position = managers.spawnButtons[i].transform.position;
-            chipsPack.transform.parent = managers.spawnButtons[i].transform;
-            chipsPack.transform.localScale = new Vector3(75, 75, 75);
-
-            chipsPack.transform.localPosition -= new Vector3(0, 0, 15);
-
-            var packRotation = Quaternion.Euler(25f, 180, 0f);
-            chipsPack.transform.rotation = packRotation;
-
-            chipsPack.layer = LayerMask.NameToLayer("UI");
-            foreach (Transform child in chipsPack.transform)
-            {
-                child.gameObject.layer = LayerMask.NameToLayer("UI");
-                foreach (Transform childer in child)
-                {
-                    childer.gameObject.layer = LayerMask.NameToLayer("UI");
-                }
-            }
+            chipsPack.name = chipsPack.name + " | " + chipsPack.GetComponent<ChipsManager>().chipPackID;
         }
     }
 
-    public void RandomizeNextPrefab(int index)
+    public void Reset(Vector3 position)
     {
-        Destroy(managers.spawnButtons[index].Prefab.gameObject);
+        int rand = RandomPack();
+        GameObject chipsPack = Instantiate(chipsPrefabs.chipsPack[rand], position,
+            Quaternion.identity);
+        chipsPack.name = chipsPack.name + " | " + chipsPack.GetComponent<ChipsManager>().chipPackID;
+        Debug.Log("Invoked");
     }
 
     private int RandomPack()
