@@ -80,6 +80,9 @@ public class ChipsManager : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         float destroyTime = _chips.Count / 20;
+
+        int lastChipNumber = _chips.Last().chipNumber;
+        
         for (int i = _chips.Count-1; i >= 0; i--)
         {
             destroyTime -= destroyTime / 10;
@@ -90,6 +93,23 @@ public class ChipsManager : MonoBehaviour
                     Destroy(_chips[i].chip);
                 });
             yield return new WaitForSeconds(destroyTime);
+        }
+
+        if (lastChipNumber <= GameManager.maxChipNumber)
+        {
+            switch (lastChipNumber)
+            {
+                case 5:
+                    for (int i = 0; i < GUIChipsManager.Instance.chipsPrefabs.chipsPack.Count; i++)
+                    {
+                        if (GUIChipsManager.Instance.chipsPrefabs.chipsPack[i].number == (lastChipNumber + lastChipNumber))
+                        {
+                            GUIChipsManager.Instance.SpawnNextPack(transform.position, i);
+                            break;
+                        }
+                    }
+                    break;
+            }
         }
     }
     private void FloorRayDetector(Vector3 direction)
@@ -126,9 +146,14 @@ public class ChipsManager : MonoBehaviour
                 if (otherPackID > ownPackID)
                 {
                     if (_chips.Count == 0 || otherChips._chips.Count == 0) return;
-                    if (isCollectable && otherChips.isCollectable && !_chipsIncrement && !isBusy && !otherChips.isBusy)
+                    if (isCollectable && otherChips.isCollectable && !_chipsIncrement && !isBusy && !otherChips.isBusy && !CheckForElements(_chips))
                     {
                         StartCoroutine(ChipsIncrement(otherChips));
+                    }
+                    else if (isCollectable && otherChips.isCollectable && !_chipsIncrement && !isBusy && !otherChips.isBusy && CheckForElements(_chips))
+                    {
+                        otherChips.StartCoroutine(otherChips.ChipsIncrement(gameObject.GetComponent<ChipsManager>()));
+                        //StartCoroutine(ChipsIncrement(otherChips));
                     }
                 }
             }
@@ -246,7 +271,23 @@ public class ChipsManager : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
     }
-
+    private bool CheckForElements(List<Chip> array)
+    {
+        if (array.Count == 0)
+        {
+            Debug.Log("Error by array");
+            return false;
+        }
+        for (int i = 1; i < array.Count; i++)
+        {
+            if (!array[i].chipNumber.Equals(array[0].chipNumber))
+            {
+                Debug.Log("Not all elements equal");
+                return false;
+            }
+        }
+        return true;
+    }
     private bool AreAllElementsEqual(List<Chip> array)
     {
         if (array.Count < 15)

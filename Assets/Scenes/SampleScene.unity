@@ -2396,10 +2396,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   chipsPrefabs:
     chipsPack:
-    - {fileID: 7601843575656099046, guid: 604a6862d3ccb4a42854a263ab432dd6, type: 3}
-    - {fileID: 7136760961234101840, guid: da316afbd2bb75f47a56e98c9f71dd0b, type: 3}
-    - {fileID: 4462927577257930443, guid: c083d0249275be64393b0a4ad548c855, type: 3}
-    - {fileID: 7874421106221725928, guid: 80f22954ffcc0dc439f1beb5a9377ace, type: 3}
+    - prefab: {fileID: 7601843575656099046, guid: 604a6862d3ccb4a42854a263ab432dd6,
+        type: 3}
+      number: 0
+    - prefab: {fileID: 7136760961234101840, guid: da316afbd2bb75f47a56e98c9f71dd0b,
+        type: 3}
+      number: 0
+    - prefab: {fileID: 4462927577257930443, guid: c083d0249275be64393b0a4ad548c855,
+        type: 3}
+      number: 0
+    - prefab: {fileID: 7874421106221725928, guid: 80f22954ffcc0dc439f1beb5a9377ace,
+        type: 3}
+      number: 0
+    - prefab: {fileID: 7136760961234101840, guid: 8c064b9982bc680499564d49ded8af2e,
+        type: 3}
+      number: 10
   managers:
     spawnButtons:
     - {fileID: 825224078}
@@ -3249,6 +3260,11 @@ PrefabInstance:
         type: 3}
       propertyPath: isCollectable
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5804402179403874796, guid: 604a6862d3ccb4a42854a263ab432dd6,
+        type: 3}
+      propertyPath: generateChipTest
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 7194568302788733439, guid: 604a6862d3ccb4a42854a263ab432dd6,
         type: 3}
