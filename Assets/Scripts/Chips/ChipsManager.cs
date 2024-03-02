@@ -32,7 +32,7 @@ public class ChipsManager : MonoBehaviour
     public int chipPackID;
 
     public bool isCollectable = false;
-    public bool isCollecting = false;
+    public bool isBusy = false;
     private bool _chipsIncrement = false;
 
     private GameObject _target;
@@ -56,6 +56,11 @@ public class ChipsManager : MonoBehaviour
         _startPosition = transform.position;
     }
 
+    private void Update()
+    {
+        FloorRayDetector(Vector3.down);
+    }
+
     private void LateUpdate()
     {
         if (_chips.Count == 0) Destroy(this.gameObject);
@@ -65,7 +70,6 @@ public class ChipsManager : MonoBehaviour
             isCollectable = false;
             StartCoroutine(Collected());
         }
-        FloorRayDetector(Vector3.down);
         RayDetector(Vector3.forward);
         RayDetector(Vector3.back);
         RayDetector(Vector3.left);
@@ -76,7 +80,7 @@ public class ChipsManager : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         float destroyTime = _chips.Count / 20;
-        for (int i = _chips.Count-1; i >= _chips.Count-1; i--)
+        for (int i = _chips.Count-1; i >= 0; i--)
         {
             destroyTime -= destroyTime / 10;
             _chips[i].chip.transform.DOScale(new Vector3(0, 0, 0), destroyTime).SetEase(Ease.OutElastic).OnComplete(
@@ -92,7 +96,7 @@ public class ChipsManager : MonoBehaviour
     {
         RaycastHit hit;
         Ray ray = new Ray(transform.position, direction);
-        if (Physics.Raycast(ray, out hit, rayCastDistance))
+        if (Physics.Raycast(ray, out hit, rayCastDistance, LayerMask.GetMask("Grid")))
         {
             var tag = hit.collider.gameObject.tag;
             if (tag == "Grid" && hit.collider.GetComponent<GridSystem>().isEmpty)
@@ -114,17 +118,15 @@ public class ChipsManager : MonoBehaviour
         {
             var tag = hit.collider.gameObject.tag;
             ChipsManager otherChips = hit.collider.gameObject.GetComponent<ChipsManager>();
-            if (tag == "Chips")
+            if (tag == "ChipsStack")
             {
                 var otherPackID = otherChips.chipPackID;
                 var ownPackID = chipPackID;
-
-                if(_target == null) _target = hit.collider.gameObject;
-
-                if (otherPackID > ownPackID && _target != null)
+                
+                if (otherPackID > ownPackID)
                 {
                     if (_chips.Count == 0 || otherChips._chips.Count == 0) return;
-                    if (isCollectable && otherChips.isCollectable && !_chipsIncrement)
+                    if (isCollectable && otherChips.isCollectable && !_chipsIncrement && !isBusy && !otherChips.isBusy)
                     {
                         StartCoroutine(ChipsIncrement(otherChips));
                     }
@@ -141,6 +143,14 @@ public class ChipsManager : MonoBehaviour
     {
         if (selectable.GetComponent<ChipsManager>()._stayGrid != null)
         {
+            GameObject stayGrid = selectable.GetComponent<ChipsManager>()._stayGrid.gameObject;
+            if (stayGrid.CompareTag("Untagged"))
+            {
+                Debug.Log("Grid already exits");
+                selectable.transform.DOMove(selectable.GetComponent<ChipsManager>()._startPosition, 0.5f)
+                    .SetEase(Ease.OutElastic);
+                return;
+            }
             selectable.GetComponent<LeanDragTranslateAlong>().enabled = false;
             selectable.transform.DOMove(selectable.GetComponent<ChipsManager>()._stayGrid.position, 0.5f)
                 .SetEase(Ease.OutElastic).OnComplete(() =>
@@ -163,23 +173,38 @@ public class ChipsManager : MonoBehaviour
     private IEnumerator ChipsIncrement(ChipsManager otherChips)
     {
         _chipsIncrement = true;
+        otherChips.isBusy = true;
+        isBusy = true;
+        
+        gameObject.tag = "Untagged";
+        otherChips.gameObject.tag = "Untagged";
+        
         var otherLastChipNumber = otherChips._chips.Last().chipNumber;
         var ownLastChipNumber = _chips.Last().chipNumber;
 
-        if (ownLastChipNumber == otherLastChipNumber)
+        for (int i = _chips.Count-1; i >= 0; i--)
         {
-            _chips.Last().chip.transform.DOMove(new Vector3(otherChips._chips.Last().chip.transform.position.x, otherChips._chips.Last().chip.transform.position.y + 0.25f, otherChips._chips.Last().chip.transform.position.z), 0.25f);
-            _chips.Last().chip.transform.DORotate(new Vector3(0, 0, 180), 0.25f, RotateMode.Fast).SetEase(Ease.OutElastic).OnComplete(() =>
+            if (_chips[i].chipNumber.Equals(otherLastChipNumber))
             {
-                GameObject lastChip = _chips.Last().chip;
-                Destroy(lastChip);
-                _chips.Remove(_chips.Last());
-                otherChips.StartCoroutine(otherChips.PoolChips(1, lastChip));
-                _chipsIncrement = false;
-            });
+                _chips[i].chip.transform.DOMove(new Vector3(otherChips._chips.Last().chip.transform.position.x, otherChips._chips.Last().chip.transform.position.y + 0.05f, otherChips._chips.Last().chip.transform.position.z), 0.15f);
+                 _chips[i].chip.transform.DORotate(new Vector3(0, 0, 180), 0.15f, RotateMode.Fast)
+                    .SetEase(Ease.OutElastic).OnComplete(() =>
+                    {
+                        GameObject lastChip = _chips[i].chip;
+                        Destroy(lastChip);
+                        _chips.RemoveAt(i); 
+                        otherChips.StartCoroutine(otherChips.PoolChips(1, lastChip));
+                    });
+                 yield return new WaitForSeconds(0.15f);
+            }
+            gameObject.tag = "ChipsStack";
+            otherChips.gameObject.tag = "ChipsStack";
+            
+            otherChips.isBusy = false;
+            isBusy = false;
+            _chipsIncrement = false;
+            yield break;
         }
-        _chipsIncrement = false;
-        yield break;
     }
     public IEnumerator PoolChips(int count, GameObject prefab)
     {
@@ -192,7 +217,7 @@ public class ChipsManager : MonoBehaviour
                     GetComponentInChildren<Transform>().position.z);
                 GameObject chip = Instantiate(_chipPrefab, newPostion, Quaternion.identity) as GameObject;
                 chip.transform.parent = gameObject.transform;
-                yield return chip.transform.DOPunchScale(new Vector3(0.2f, 0.2f, 0.2f), 0.5f, 2);
+                
                 Chip newChip = new Chip();
                 newChip.chip = chip;
                 newChip.chipNumber = chip.GetComponent<ChipManager>().chipNumber;
@@ -204,9 +229,12 @@ public class ChipsManager : MonoBehaviour
                 var newPostion = new Vector3(_chips.Last().chip.transform.position.x,
                     _chips.Last().chip.transform.position.y + 0.05f,
                     _chips.Last().chip.transform.position.z);
-                GameObject chip = Instantiate(prefab, newPostion, Quaternion.identity) as GameObject;
+
+                GameObject chip = Instantiate(prefab, newPostion, Quaternion.identity) as GameObject; 
                 chip.transform.parent = gameObject.transform;
-                yield return chip.transform.DOPunchScale(new Vector3(0.2f, 0.2f, 0.2f), 0.5f, 2);
+
+                Canvas chipCanvas = chip.GetComponentInChildren<Canvas>();
+                chipCanvas.enabled = true;
 
                 Chip newChip = new Chip();
                 newChip.chip = chip;

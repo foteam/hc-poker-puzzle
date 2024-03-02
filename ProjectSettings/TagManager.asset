@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Chips
   - Grid
+  - ChipsStack
   layers:
   - Default
   - TransparentFX

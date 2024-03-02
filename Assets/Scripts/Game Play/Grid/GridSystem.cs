@@ -17,30 +17,34 @@ public class GridSystem : MonoBehaviour
         transform.DOMove(_actualPosition, Random.Range(0.1f, 1f)).SetEase(Ease.OutCubic);
     }
 
-    private void LateUpdate()
+    private void Update()
     {
-        if (!isEmpty) gameObject.tag = "Untagged";
-        if (isEmpty) gameObject.tag = "Grid";
+        if (obj != null)
+        {
+            gameObject.layer = LayerMask.NameToLayer("Default");
+            gameObject.tag = "Untagged"; 
+            isEmpty = false;
+            return;
+        }
+
+        if (obj == null)
+        {
+            gameObject.layer = LayerMask.NameToLayer("Grid");
+            gameObject.tag = "Grid"; 
+            isEmpty = true;
+            return;
+        }
     }
 
-    private void OnCollisionEnter(Collision other)
+    private void OnCollisionStay(Collision other)
     {
         if (other.gameObject.CompareTag("Chips"))
         {
             if (other.gameObject.GetComponent<ChipsManager>().isCollectable)
             {
-                isEmpty = false;
                 obj = other.gameObject;
+                obj.tag = "ChipsStack";
             }
-        }
-    }
-
-    private void OnCollisionExit(Collision other)
-    {
-        if (other.gameObject.CompareTag("Chips"))
-        {
-            isEmpty = true;
-            obj = null;
         }
     }
 }
