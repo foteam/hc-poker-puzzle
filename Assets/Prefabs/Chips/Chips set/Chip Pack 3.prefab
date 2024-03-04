@@ -2617,6 +2617,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _chipPrefab: {fileID: 5787222462949830904, guid: b02e14622b9195e4ead90d957d8c8f56,
     type: 3}
+  _chipsTypes:
+  - chip: {fileID: 2849584634965792001, guid: 8bcf50cade14b324a809fe4b71e383a4, type: 3}
+    number: 5
+  - chip: {fileID: 5787222462949830904, guid: b02e14622b9195e4ead90d957d8c8f56, type: 3}
+    number: 10
   _chips:
   - chip: {fileID: 6564662623817831979}
     chipNumber: 5
@@ -2640,12 +2645,14 @@ MonoBehaviour:
     chipNumber: 10
   - chip: {fileID: 7215431978662588870}
     chipNumber: 10
+  _pooledChips: []
   rayCastDistance: 1
   _startPosition: {x: 0, y: 0, z: 0}
   _stayGrid: {fileID: 0}
   generateChipTest: 1
   chipPackID: 0
   isCollectable: 0
+  isBusy: 0
 --- !u!65 &7541062777300510782
 BoxCollider:
   m_ObjectHideFlags: 0

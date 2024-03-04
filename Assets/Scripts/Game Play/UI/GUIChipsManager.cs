@@ -8,6 +8,8 @@ using Random = UnityEngine.Random;
 
 public class GUIChipsManager : MonoBehaviour
 {
+    #region Classes
+
     [Serializable]
     public class Packs
     {
@@ -25,6 +27,8 @@ public class GUIChipsManager : MonoBehaviour
     {
         public List<Transform> spawnButtons;
     }
+
+    #endregion
     public Chips chipsPrefabs;
     public Managers managers;
     
@@ -37,13 +41,7 @@ public class GUIChipsManager : MonoBehaviour
         {
             Instance = this;
         }
-        else
-        {
-            Destroy(gameObject);
-        }
-        DontDestroyOnLoad(gameObject);
     }
-
     private void SetStartChipsPack()
     {
         for (int i = 0; i < managers.spawnButtons.Count; i++)
@@ -54,7 +52,10 @@ public class GUIChipsManager : MonoBehaviour
             chipsPack.name = chipsPack.name + " | " + chipsPack.GetComponent<ChipsManager>().chipPackID;
         }
     }
-
+    /// <summary>
+    /// Reset method is spawning randomly new chips pack at position
+    /// <param name="Vector3">position</param>
+    /// </summary>
     public void Reset(Vector3 position)
     {
         int rand = RandomPack();
@@ -63,7 +64,11 @@ public class GUIChipsManager : MonoBehaviour
         chipsPack.name = chipsPack.name + " | " + chipsPack.GetComponent<ChipsManager>().chipPackID;
         Debug.Log("Invoked");
     }
-
+    /// <summary>
+    /// This method is spawning next chips pack after collecting 15 identical chips, for example 5 * 15 = 10 chip pack
+    /// </summary>
+    /// <param name="Vector3">position</param>
+    /// <param name="index">index of chips pack</param>
     public void SpawnNextPack(Vector3 position, int index)
     {
         GameObject chipsPack = Instantiate(chipsPrefabs.chipsPack[index].prefab, position,

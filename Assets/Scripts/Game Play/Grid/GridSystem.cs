@@ -15,23 +15,33 @@ public class GridSystem : MonoBehaviour
         _actualPosition = transform.position;
         transform.position = new Vector3(_actualPosition.x, -5, _actualPosition.z);
         transform.DOMove(_actualPosition, Random.Range(0.1f, 1f)).SetEase(Ease.OutCubic);
-    }
-
-    private void Update()
-    {
         if (obj != null)
         {
             gameObject.layer = LayerMask.NameToLayer("Default");
             gameObject.tag = "Untagged"; 
             isEmpty = false;
+            GameManager.Instance.gridSystems.Add(GetComponent<GridSystem>());
+            return;
+        }
+    }
+
+    private void Update()
+    {
+        if (obj != null && isEmpty)
+        {
+            gameObject.layer = LayerMask.NameToLayer("Default");
+            gameObject.tag = "Untagged"; 
+            isEmpty = false;
+            GameManager.Instance.gridSystems.Add(GetComponent<GridSystem>());
             return;
         }
 
-        if (obj == null)
+        if (obj == null && !isEmpty)
         {
             gameObject.layer = LayerMask.NameToLayer("Grid");
             gameObject.tag = "Grid"; 
             isEmpty = true;
+            GameManager.Instance.gridSystems.Remove(GetComponent<GridSystem>());
             return;
         }
     }

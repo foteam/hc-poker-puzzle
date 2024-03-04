@@ -12,15 +12,38 @@ using UnityEditor;
 
 public class ChipsManager : MonoBehaviour
 {
+    #region Classes
+
+    [Serializable]
+    public class ChipsTypes
+    {
+        public GameObject chip;
+        public int number;
+    }
+    [Serializable]
+    public class PoolPacks
+    {
+        public GameObject chip;
+        public int chipNumber;
+    }
     [Serializable]
     public class Chip
     {
         public GameObject chip;
         public int chipNumber;
     }
+
+    #endregion
     
     [SerializeField] public GameObject _chipPrefab;
+
+    #region Chip Lists
+
+    [SerializeField] private List<ChipsTypes> _chipsTypes;
     [SerializeField] private List<Chip> _chips;
+    [SerializeField] private List<PoolPacks> _pooledChips;
+
+    #endregion
     
     [Range(0, 10)]
     [SerializeField] private float rayCastDistance;
@@ -36,7 +59,7 @@ public class ChipsManager : MonoBehaviour
     private bool _chipsIncrement = false;
 
     private GameObject _target;
-    
+
     private void OnEnable()
     {
         LeanSelectable.OnAnyDeselected += PackDeselected;
@@ -48,7 +71,8 @@ public class ChipsManager : MonoBehaviour
     }
     private void Awake()
     {
-        StartCoroutine(PoolChips(generateChipTest, _chipPrefab));
+        StartCoroutine(PoolChips(generateChipTest, _chipPrefab, _chipPrefab.GetComponent<ChipManager>().chipNumber));
+        StartCoroutine(CreatePool());
         
         GameManager.spawnedChipsID += 1;
         chipPackID = GameManager.spawnedChipsID;
@@ -76,42 +100,7 @@ public class ChipsManager : MonoBehaviour
         RayDetector(Vector3.right);
     }
 
-    private IEnumerator Collected()
-    {
-        yield return new WaitForSeconds(1f);
-        float destroyTime = _chips.Count / 20;
-
-        int lastChipNumber = _chips.Last().chipNumber;
-        
-        for (int i = _chips.Count-1; i >= 0; i--)
-        {
-            destroyTime -= destroyTime / 10;
-            _chips[i].chip.transform.DOScale(new Vector3(0, 0, 0), destroyTime).SetEase(Ease.OutElastic).OnComplete(
-                () =>
-                {
-                    _chips.RemoveAt(i);
-                    Destroy(_chips[i].chip);
-                });
-            yield return new WaitForSeconds(destroyTime);
-        }
-
-        if (lastChipNumber <= GameManager.maxChipNumber)
-        {
-            switch (lastChipNumber)
-            {
-                case 5:
-                    for (int i = 0; i < GUIChipsManager.Instance.chipsPrefabs.chipsPack.Count; i++)
-                    {
-                        if (GUIChipsManager.Instance.chipsPrefabs.chipsPack[i].number == (lastChipNumber + lastChipNumber))
-                        {
-                            GUIChipsManager.Instance.SpawnNextPack(transform.position, i);
-                            break;
-                        }
-                    }
-                    break;
-            }
-        }
-    }
+    #region Methods
     private void FloorRayDetector(Vector3 direction)
     {
         RaycastHit hit;
@@ -163,7 +152,6 @@ public class ChipsManager : MonoBehaviour
             _target = null;
         }
     }
-    
     public void PackDeselected(LeanSelect select, LeanSelectable selectable)
     {
         if (selectable.GetComponent<ChipsManager>()._stayGrid != null)
@@ -194,7 +182,48 @@ public class ChipsManager : MonoBehaviour
                 .SetEase(Ease.OutElastic);
         }
     }
-    
+
+    #endregion
+
+    #region Coroutines
+
+    private IEnumerator Collected()
+    {
+        yield return new WaitForSeconds(1f);
+        float destroyTime = _chips.Count / 20;
+
+        int lastChipNumber = _chips.Last().chipNumber;
+        
+        for (int i = _chips.Count-1; i >= 0; i--)
+        {
+            destroyTime -= destroyTime / 10;
+            _chips[i].chip.transform.DOScale(new Vector3(0, 0, 0), destroyTime).SetEase(Ease.OutElastic).OnComplete(
+                () =>
+                {
+                    GameManager.Instance.target -= _chips[i].chipNumber;
+                    _chips.RemoveAt(i);
+                    Destroy(_chips[i].chip);
+                });
+            yield return new WaitForSeconds(destroyTime);
+        }
+
+        if (lastChipNumber <= GameManager.maxChipNumber)
+        {
+            switch (lastChipNumber)
+            {
+                case 5:
+                    for (int i = 0; i < GUIChipsManager.Instance.chipsPrefabs.chipsPack.Count; i++)
+                    {
+                        if (GUIChipsManager.Instance.chipsPrefabs.chipsPack[i].number == (lastChipNumber + lastChipNumber))
+                        {
+                            GUIChipsManager.Instance.SpawnNextPack(transform.position, i);
+                            break;
+                        }
+                    }
+                    break;
+            }
+        }
+    }
     private IEnumerator ChipsIncrement(ChipsManager otherChips)
     {
         _chipsIncrement = true;
@@ -205,22 +234,24 @@ public class ChipsManager : MonoBehaviour
         otherChips.gameObject.tag = "Untagged";
         
         var otherLastChipNumber = otherChips._chips.Last().chipNumber;
-        var ownLastChipNumber = _chips.Last().chipNumber;
+        
+        GameManager.Instance.activeChips.Add(gameObject);
 
         for (int i = _chips.Count-1; i >= 0; i--)
         {
             if (_chips[i].chipNumber.Equals(otherLastChipNumber))
             {
                 _chips[i].chip.transform.DOMove(new Vector3(otherChips._chips.Last().chip.transform.position.x, otherChips._chips.Last().chip.transform.position.y + 0.05f, otherChips._chips.Last().chip.transform.position.z), 0.15f);
-                 _chips[i].chip.transform.DORotate(new Vector3(0, 0, 180), 0.15f, RotateMode.Fast)
+                _chips[i].chip.transform.DORotate(new Vector3(0, 0, 180), 0.15f, RotateMode.Fast)
                     .SetEase(Ease.OutElastic).OnComplete(() =>
                     {
                         GameObject lastChip = _chips[i].chip;
+                        int lastChipNum = _chips[i].chipNumber;
                         Destroy(lastChip);
                         _chips.RemoveAt(i); 
-                        otherChips.StartCoroutine(otherChips.PoolChips(1, lastChip));
+                        otherChips.StartCoroutine(otherChips.PoolChips(1, lastChip, lastChipNum));
                     });
-                 yield return new WaitForSeconds(0.15f);
+                yield return new WaitForSeconds(0.15f);
             }
             gameObject.tag = "ChipsStack";
             otherChips.gameObject.tag = "ChipsStack";
@@ -228,11 +259,35 @@ public class ChipsManager : MonoBehaviour
             otherChips.isBusy = false;
             isBusy = false;
             _chipsIncrement = false;
+            
+            GameManager.Instance.activeChips.Remove(gameObject);
             yield break;
         }
     }
-    public IEnumerator PoolChips(int count, GameObject prefab)
+    public IEnumerator CreatePool()
     {
+        for (int i = 0; i < _chipsTypes.Count; i++)
+        {
+            for (int j = 0; j <= 25; j++)
+            {
+                GameObject chip = Instantiate(_chipsTypes[i].chip, transform.position, Quaternion.identity);
+                chip.transform.parent = transform;
+                chip.SetActive(false);
+                
+                PoolPacks pooledChip = new PoolPacks();
+                pooledChip.chip = chip.gameObject;
+                pooledChip.chipNumber = _chipsTypes[i].number;
+                
+                _pooledChips.Add(pooledChip);
+                
+                yield return new WaitForSeconds(0.05f);
+            }
+        }
+        yield break;
+    }
+    public IEnumerator PoolChips(int count, GameObject prefab, int number)
+    {
+        Debug.Log(number);
         while (count > 0)
         {
             if (_chips.Count == 0)
@@ -254,23 +309,37 @@ public class ChipsManager : MonoBehaviour
                 var newPostion = new Vector3(_chips.Last().chip.transform.position.x,
                     _chips.Last().chip.transform.position.y + 0.05f,
                     _chips.Last().chip.transform.position.z);
+                for (int i = 0; i < _pooledChips.Count; i++)
+                {
+                    if (_pooledChips[i].chipNumber == number)
+                    {
+                        _pooledChips[i].chip.SetActive(true);
+                        GameObject chip = _pooledChips[i].chip;
+                        chip.transform.position = newPostion;
 
-                GameObject chip = Instantiate(prefab, newPostion, Quaternion.identity) as GameObject; 
-                chip.transform.parent = gameObject.transform;
-
-                Canvas chipCanvas = chip.GetComponentInChildren<Canvas>();
-                chipCanvas.enabled = true;
-
-                Chip newChip = new Chip();
-                newChip.chip = chip;
-                newChip.chipNumber = chip.GetComponent<ChipManager>().chipNumber;
-                _chips.Add(newChip);
+                        Canvas chipCanvas = chip.GetComponentInChildren<Canvas>();
+                        chipCanvas.enabled = true;
+                        
+                        Chip newChip = new Chip();
+                        newChip.chip = chip;
+                        newChip.chipNumber = chip.GetComponent<ChipManager>().chipNumber;
+                        _chips.Add(newChip);
+                        
+                        _pooledChips.RemoveAt(i);
+                        
+                        yield break;
+                    }
+                }
             }
-
             count--;
             yield return new WaitForFixedUpdate();
         }
     }
+
+    #endregion
+
+    #region Utlits
+
     private bool CheckForElements(List<Chip> array)
     {
         if (array.Count == 0)
@@ -307,7 +376,6 @@ public class ChipsManager : MonoBehaviour
     }
     void OnDrawGizmos()
     {
-        // Рисование луча в Scene View
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, Vector3.forward * rayCastDistance);
         Gizmos.DrawRay(transform.position, Vector3.back * rayCastDistance);
@@ -315,7 +383,11 @@ public class ChipsManager : MonoBehaviour
         Gizmos.DrawRay(transform.position, Vector3.right * rayCastDistance);
         Gizmos.DrawRay(transform.position, Vector3.down * rayCastDistance);
     }
+
+    #endregion
 }
+
+#region Editor
 
 #if UNITY_EDITOR
 [CustomEditor(typeof(ChipsManager))]
@@ -330,8 +402,10 @@ public class ChipsManagerEditor : Editor
 
         if (GUILayout.Button("Generate Chipss"))
         {
-            chipsManager.StartCoroutine(chipsManager.PoolChips(chipsManager.generateChipTest, chipsManager._chipPrefab));
+            chipsManager.StartCoroutine(chipsManager.PoolChips(chipsManager.generateChipTest, chipsManager._chipPrefab, chipsManager._chipPrefab.GetComponent<ChipManager>().chipNumber));
         }
     }
 }
 #endif
+
+#endregion

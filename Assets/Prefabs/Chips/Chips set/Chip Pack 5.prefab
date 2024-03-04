@@ -450,9 +450,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _chipPrefab: {fileID: 5787222462949830904, guid: b02e14622b9195e4ead90d957d8c8f56,
     type: 3}
+  _chipsTypes:
+  - chip: {fileID: 2849584634965792001, guid: 8bcf50cade14b324a809fe4b71e383a4, type: 3}
+    number: 5
+  - chip: {fileID: 5787222462949830904, guid: b02e14622b9195e4ead90d957d8c8f56, type: 3}
+    number: 10
   _chips:
   - chip: {fileID: 4484049628780522374}
     chipNumber: 10
+  _pooledChips: []
   rayCastDistance: 1
   _startPosition: {x: 0, y: 0, z: 0}
   _stayGrid: {fileID: 0}
